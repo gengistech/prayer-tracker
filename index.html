@@ -76,11 +76,27 @@
         #admin-tools.open { display: flex; }
         .admin-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 
+        #recovery-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .recovery-card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--accent); text-align: center; max-width: 400px; width: 100%; }
+        
         .hidden { display: none !important; }
         .verse-footer { margin-top: 30px; text-align: center; font-size: 0.8rem; color: #555; font-style: italic; }
     </style>
 </head>
 <body>
+
+<div id="recovery-overlay" class="hidden">
+    <div class="recovery-card">
+        <h2 style="color: var(--accent); margin-top: 0;">Unfinished Session</h2>
+        <p id="recovery-timestamp" style="font-size: 0.85rem; color: #888;">Started: --:--</p>
+        <div id="recovery-details" style="font-family: monospace; color: var(--success); margin: 15px 0; font-size: 1.5rem;">00:00:00</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="btn primary" onclick="handleRecovery('resume')">Resume Session</button>
+            <button class="btn success" onclick="handleRecovery('save')">Save & Finish</button>
+            <button class="btn secondary" style="background: #422;" onclick="handleRecovery('discard')">Discard</button>
+        </div>
+    </div>
+</div>
 
 <div class="container">
     <div class="header">
@@ -193,17 +209,31 @@
         setGoal: (val) => localStorage.setItem('dailyGoal', val)
     };
 
-    let timerInterval, elapsedSeconds = 0, isPaused = false, startTime = null, wakeLock = null, openDay = null;
+    let timerInterval, autosaveInterval, elapsedSeconds = 0, isPaused = false, startTime = null, wakeLock = null, openDay = null, shouldKeepAwake = false;
 
     const mainPointersEl = document.getElementById('main-pointers');
     mainPointersEl.innerHTML = db.getPointers();
     mainPointersEl.addEventListener('input', () => db.savePointers(mainPointersEl.innerHTML));
 
+    // Improved Wake Lock: Re-requests lock if visibility changes while timer is active
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
     }
+    document.addEventListener('visibilitychange', async () => {
+        if (shouldKeepAwake && document.visibilityState === 'visible') { await requestWakeLock(); }
+    });
+
+    // Check for unfinished sessions on load
+    window.onload = () => {
+        const saved = JSON.parse(localStorage.getItem('activeSession'));
+        if (saved && saved.startTime) {
+            const start = new Date(saved.startTime);
+            document.getElementById('recovery-timestamp').innerText = `Started: ${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+            document.getElementById('recovery-overlay').classList.remove('hidden');
+        }
+    };
 
     function showPage(id) {
         ['setup', 'manual', 'history', 'about'].forEach(p => {
@@ -218,22 +248,35 @@
 
     function format(cmd) { document.execCommand(cmd, false, null); }
 
-    function startSession() {
-        if (!isPaused) { startTime = Date.now(); requestWakeLock(); } 
-        else { startTime = Date.now() - (elapsedSeconds * 1000); requestWakeLock(); }
+    function startSession(isResuming = false) {
+        if (!isPaused && !isResuming) { startTime = Date.now(); } 
+        else if (isPaused) { startTime = Date.now() - (elapsedSeconds * 1000); }
+        
         isPaused = false;
+        shouldKeepAwake = true;
+        requestWakeLock();
+        
         document.getElementById('start-btn').classList.add('hidden');
         ['pause-btn', 'stop-btn'].forEach(i => document.getElementById(i).classList.remove('hidden'));
         document.getElementById('session-status').innerText = "Session Active";
+        
+        // Save immediately so even a 1-second session is recoverable
+        localStorage.setItem('activeSession', JSON.stringify({ startTime, elapsed: elapsedSeconds, pointers: mainPointersEl.innerHTML }));
+
         timerInterval = setInterval(() => { 
             elapsedSeconds = Math.floor((Date.now() - startTime) / 1000); 
             updateDisplay(); 
         }, 1000);
+        
+        autosaveInterval = setInterval(() => {
+            localStorage.setItem('activeSession', JSON.stringify({ startTime, elapsed: elapsedSeconds, pointers: mainPointersEl.innerHTML }));
+        }, 10000);
     }
 
     function togglePause() {
         if (!isPaused) {
-            clearInterval(timerInterval); isPaused = true; 
+            clearInterval(timerInterval); clearInterval(autosaveInterval);
+            isPaused = true; shouldKeepAwake = false;
             document.getElementById('pause-btn').innerText = "Resume";
             if (wakeLock) { wakeLock.release().then(() => wakeLock = null); }
         } else {
@@ -242,12 +285,16 @@
     }
 
     function stopSession() {
-        clearInterval(timerInterval);
+        clearInterval(timerInterval); clearInterval(autosaveInterval);
+        shouldKeepAwake = false;
+        if (wakeLock) { wakeLock.release().then(() => wakeLock = null); }
+        
         if (startTime) {
             const h = db.getHistory();
             h.push({ id: Date.now(), start: new Date(startTime).toISOString(), duration: elapsedSeconds, pointers: mainPointersEl.innerHTML });
             db.saveHistory(h);
         }
+        localStorage.removeItem('activeSession');
         location.reload();
     }
 
@@ -256,6 +303,19 @@
         const m = Math.floor((elapsedSeconds%3600)/60).toString().padStart(2,'0');
         const s = (elapsedSeconds%60).toString().padStart(2,'0');
         document.getElementById('display-time').innerText = `${h}:${m}:${s}`;
+    }
+
+    function handleRecovery(choice) {
+        const saved = JSON.parse(localStorage.getItem('activeSession'));
+        document.getElementById('recovery-overlay').classList.add('hidden');
+        if (choice === 'resume') {
+            startTime = saved.startTime; elapsedSeconds = Math.floor((Date.now() - startTime)/1000);
+            mainPointersEl.innerHTML = saved.pointers; startSession(true);
+        } else if (choice === 'save') {
+            const h = db.getHistory();
+            h.push({ id: Date.now(), start: new Date(saved.startTime).toISOString(), duration: saved.elapsed, pointers: saved.pointers });
+            db.saveHistory(h); localStorage.removeItem('activeSession'); location.reload();
+        } else { localStorage.removeItem('activeSession'); location.reload(); }
     }
 
     function prepManual() {
@@ -352,20 +412,22 @@
         return streak;
     }
 
+    // Modern Copy: Preserves rich text formatting (Bold/Lists)
     async function copyItem(id) {
-    const i = db.getHistory().find(x => x.id == id);
-    const htmlContent = i.pointers || "";
-    // Create a version without HTML tags for apps that don't support rich text
-    const plainText = htmlContent.replace(/<[^>]+>/g, ''); 
-
-    const blobHtml = new Blob([htmlContent], { type: "text/html" });
-    const blobText = new Blob([plainText], { type: "text/plain" });
-    const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
-
-    await navigator.clipboard.write(data);
-    alert("Text copied.");
+        const i = db.getHistory().find(x => x.id == id);
+        const html = i.pointers || "";
+        const text = i.pointers.replace(/<[^>]+>/g, '');
+        try {
+            const blobHtml = new Blob([html], { type: "text/html" });
+            const blobText = new Blob([text], { type: "text/plain" });
+            const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
+            await navigator.clipboard.write(data);
+            alert("Copied with formatting!");
+        } catch (err) {
+            // Fallback for older browsers
+            navigator.clipboard.writeText(text).then(() => alert("Copied text only"));
+        }
     }
-    
 
     function exportCSV() {
         const h = db.getHistory(); let csv = "Date,Duration(Min),Notes\n";
@@ -394,4 +456,4 @@
     }
 </script>
 </body>
-</html> 
+</html>
