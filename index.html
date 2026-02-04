@@ -39,8 +39,8 @@
 
         .timer-box {
             background: linear-gradient(145deg, #1e1e1e, #222);
-            padding: 30px 20px; border-radius: 20px; text-align: center;
-            margin: 15px 0; border: 1px solid #333;
+            padding: 15px 20px; border-radius: 20px; text-align: center;
+            margin: 10px 0; border: 1px solid #333;
         }
         #display-time { font-size: 3.5rem; font-weight: bold; font-family: monospace; color: var(--accent); }
         .btn { border: none; font-weight: bold; cursor: pointer; padding: 15px; border-radius: 12px; }
@@ -428,17 +428,30 @@
 
     function exportCSV() {
     const h = db.getHistory(); 
-    let csv = "Date,Duration(Min),Notes\n"; // Ensure this is simple plain text
+    let csv = "Date,Duration(Min),Notes\n";
+    
     h.forEach(i => {
-        const t = document.createElement("div"); 
-        t.innerHTML = i.pointers || "";
-        const p = (t.innerText || t.textContent).replace(/"/g, '""');
-        // Using a cleaner date format without commas
+        // Create a temporary element to process the HTML
+        const temp = document.createElement("div");
+        temp.innerHTML = i.pointers || "";
+        
+        // 1. Convert <div> and <p> tags to newlines
+        // 2. Convert <br> tags to newlines
+        let textWithLines = temp.innerHTML
+            .replace(/<\/div>| <\/p>/gi, '\n') 
+            .replace(/<br\s*[\/]?>/gi, '\n')
+            .replace(/<[^>]+>/g, ''); // 3. Strip all other HTML tags
+            
+        // Clean up leading/trailing white space and escape quotes for CSV
+        const finalPointers = textWithLines.trim().replace(/"/g, '""');
+        
+        // Use ISO date to prevent comma issues
         const d = new Date(i.start).toISOString().replace('T', ' ').substring(0, 16);
-        csv += `${d},${Math.round(i.duration/60)},"${p}"\n`;
+        
+        csv += `${d},${Math.round(i.duration/60)},"${finalPointers}"\n`;
     });
     
-    // Create an explicit UTF-8 BOM
+    // Explicit UTF-8 BOM to prevent Chinese character errors
     const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
     const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a'); 
