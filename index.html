@@ -162,7 +162,7 @@
             <div class="dash-main">
                 <div class="dash-item">
                     <span id="dash-week-total" class="dash-val">0m</span>
-                    <span class="dash-lbl">This Week</span>
+                    <span class="dash-lbl">This Week (M-S)</span>
                 </div>
                 <div class="dash-item" onclick="setDailyGoal()">
                     <span id="dash-goal-val" class="dash-val" style="text-decoration: underline dashed;">0m</span>
@@ -215,7 +215,6 @@
     mainPointersEl.innerHTML = db.getPointers();
     mainPointersEl.addEventListener('input', () => db.savePointers(mainPointersEl.innerHTML));
 
-    // Improved Wake Lock: Re-requests lock if visibility changes while timer is active
     async function requestWakeLock() {
         if ('wakeLock' in navigator) {
             try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
@@ -225,11 +224,17 @@
         if (shouldKeepAwake && document.visibilityState === 'visible') { await requestWakeLock(); }
     });
 
-    // Check for unfinished sessions on load
     window.onload = () => {
         const saved = JSON.parse(localStorage.getItem('activeSession'));
         if (saved && saved.startTime) {
             const start = new Date(saved.startTime);
+            const currentDuration = Math.floor((Date.now() - saved.startTime) / 1000);
+            
+            const h = Math.floor(currentDuration/3600).toString().padStart(2,'0');
+            const m = Math.floor((currentDuration%3600)/60).toString().padStart(2,'0');
+            const s = (currentDuration%60).toString().padStart(2,'0');
+            
+            document.getElementById('recovery-details').innerText = `${h}:${m}:${s}`;
             document.getElementById('recovery-timestamp').innerText = `Started: ${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
             document.getElementById('recovery-overlay').classList.remove('hidden');
         }
@@ -260,7 +265,6 @@
         ['pause-btn', 'stop-btn'].forEach(i => document.getElementById(i).classList.remove('hidden'));
         document.getElementById('session-status').innerText = "Session Active";
         
-        // Save immediately so even a 1-second session is recoverable
         localStorage.setItem('activeSession', JSON.stringify({ startTime, elapsed: elapsedSeconds, pointers: mainPointersEl.innerHTML }));
 
         timerInterval = setInterval(() => { 
@@ -312,8 +316,9 @@
             startTime = saved.startTime; elapsedSeconds = Math.floor((Date.now() - startTime)/1000);
             mainPointersEl.innerHTML = saved.pointers; startSession(true);
         } else if (choice === 'save') {
+            const dur = Math.floor((Date.now() - saved.startTime) / 1000);
             const h = db.getHistory();
-            h.push({ id: Date.now(), start: new Date(saved.startTime).toISOString(), duration: saved.elapsed, pointers: saved.pointers });
+            h.push({ id: Date.now(), start: new Date(saved.startTime).toISOString(), duration: dur, pointers: saved.pointers });
             db.saveHistory(h); localStorage.removeItem('activeSession'); location.reload();
         } else { localStorage.removeItem('activeSession'); location.reload(); }
     }
@@ -412,32 +417,30 @@
         return streak;
     }
 
-    // Modern Copy: Preserves rich text formatting (Bold/Lists)
-    async function copyItem(id) {
+    function copyItem(id) {
         const i = db.getHistory().find(x => x.id == id);
-        const html = i.pointers || "";
-        const text = i.pointers.replace(/<[^>]+>/g, '');
-        try {
-            const blobHtml = new Blob([html], { type: "text/html" });
-            const blobText = new Blob([text], { type: "text/plain" });
-            const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
-            await navigator.clipboard.write(data);
-            alert("Copied with formatting!");
-        } catch (err) {
-            // Fallback for older browsers
-            navigator.clipboard.writeText(text).then(() => alert("Copied text only"));
-        }
+        const t = document.createElement("div"); 
+        t.innerHTML = i.pointers || "";
+        const plainText = t.innerText; 
+        navigator.clipboard.writeText(plainText).then(() => alert("Copied text!"));
     }
 
     function exportCSV() {
-        const h = db.getHistory(); let csv = "Date,Duration(Min),Notes\n";
+        const h = db.getHistory(); 
+        let csv = "Date,Duration(Min),Notes\n";
         h.forEach(i => {
-            const t = document.createElement("div"); t.innerHTML = i.pointers || "";
+            const t = document.createElement("div"); 
+            t.innerHTML = i.pointers || "";
             const p = (t.innerText || t.textContent).replace(/"/g, '""');
             csv += `${new Date(i.start).toLocaleString().replace(/,/g,'')},${Math.round(i.duration/60)},"${p}"\n`;
         });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' }));
-        a.download = `prayer_log.csv`; a.click();
+        
+        // Fix for encoding issues: use explicit Blob with BOM
+        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(blob);
+        a.download = `prayer_log.csv`; 
+        a.click();
     }
 
     function backupJSON() {
