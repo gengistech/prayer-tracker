@@ -28,7 +28,6 @@
 
         .toolbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
         .toolbar button { background: #2a2a2a; color: var(--text); border: 1px solid #444; padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; min-width: 35px; }
-        .toolbar button:active { background: var(--accent); color: #000; }
 
         [contenteditable="true"], input {
             width: 100%; background: var(--card); color: var(--text);
@@ -37,7 +36,6 @@
         }
         #main-pointers, #manual-pointers { height: 264px; overflow-y: auto; text-align: left; line-height: 1.5; white-space: pre-wrap; outline: none; }
         #manual-pointers { height: 180px; }
-        [contenteditable="true"]:empty:before { content: attr(placeholder); color: #666; pointer-events: none; display: block; }
 
         .timer-box {
             background: linear-gradient(145deg, #1e1e1e, #222);
@@ -68,7 +66,6 @@
         .sessions-container { max-height: 0; overflow: hidden; transition: all 0.3s ease; background: #161616; border-radius: 10px; }
         .sessions-container.expanded { max-height: 2000px; padding: 10px; margin-bottom: 15px; border: 1px solid #333; }
         .session-item { border-bottom: 1px solid #222; padding: 12px 0; }
-        .session-item:last-child { border-bottom: none; }
         .editable-text { white-space: pre-wrap; color: #ccc; outline: none; font-style: italic; line-height: 1.6; font-size: 14px; width: 100%; display: block; }
         
         .action-bar { display: flex; gap: 10px; margin-top: 10px; }
@@ -77,28 +74,13 @@
         .admin-toggle { background: transparent; color: #888; border: 1px solid #333; border-radius: 8px; padding: 8px; font-size: 0.75rem; width: 100%; cursor: pointer; margin-bottom: 10px; }
         #admin-tools { display: none; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #333; }
         #admin-tools.open { display: flex; }
+        .admin-btn { background: #2a2a2a; color: #bbb; border: 1px solid #444; padding: 8px; border-radius: 6px; font-size: 11px; cursor: pointer; }
 
-        #recovery-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .recovery-card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--accent); text-align: center; max-width: 400px; width: 100%; }
-        
         .hidden { display: none !important; }
         .verse-footer { margin-top: 30px; text-align: center; font-size: 0.8rem; color: #555; font-style: italic; }
     </style>
 </head>
 <body>
-
-<div id="recovery-overlay" class="hidden">
-    <div class="recovery-card">
-        <h2 style="color: var(--accent); margin-top: 0;">Unfinished Session</h2>
-        <p id="recovery-timestamp" style="font-size: 0.85rem; color: #888;">Started: --:--</p>
-        <div id="recovery-details" style="font-family: monospace; color: var(--success); margin: 15px 0; font-size: 1.5rem;">00:00:00</div>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button class="btn primary" onclick="handleRecovery('resume')">Resume Session</button>
-            <button class="btn success" onclick="handleRecovery('save')">Save & Finish</button>
-            <button class="btn secondary" style="background: #422;" onclick="handleRecovery('discard')">Discard</button>
-        </div>
-    </div>
-</div>
 
 <div class="container">
     <div class="header">
@@ -119,7 +101,6 @@
             <button onclick="format('underline')"><u>U</u></button>
             <button onclick="format('strikeThrough')"><s>S</s></button>
             <button onclick="format('insertUnorderedList')">• List</button>
-            <button onclick="format('removeFormat')">Clear</button>
         </div>
         <div id="main-pointers" contenteditable="true" placeholder="Enter reflections here..."></div>
         <div class="timer-box">
@@ -138,14 +119,14 @@
         <h3>Manual Entry</h3>
         <div style="background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333;">
             <label style="font-size: 0.7rem; color: var(--accent); font-weight: bold;">TIME RANGE</label>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
-                <div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <div style="flex: 1; min-width: 0;">
                     <span style="font-size: 10px; color: #888;">From</span>
-                    <input type="datetime-local" id="manual-start">
+                    <input type="datetime-local" id="manual-start" style="padding: 10px; font-size: 14px;">
                 </div>
-                <div>
+                <div style="flex: 1; min-width: 0;">
                     <span style="font-size: 10px; color: #888;">To</span>
-                    <input type="datetime-local" id="manual-end">
+                    <input type="datetime-local" id="manual-end" style="padding: 10px; font-size: 14px;">
                 </div>
             </div>
             <div class="toolbar">
@@ -154,7 +135,6 @@
                 <button onclick="format('underline')"><u>U</u></button>
                 <button onclick="format('strikeThrough')"><s>S</s></button>
                 <button onclick="format('insertUnorderedList')">• List</button>
-                <button onclick="format('removeFormat')">Clear</button>
             </div>
             <div id="manual-pointers" contenteditable="true" placeholder="Add notes for this entry..."></div>
             <button class="btn success full-width" onclick="saveManualLog()">Add to History</button>
@@ -181,9 +161,9 @@
 
         <button class="admin-toggle" onclick="document.getElementById('admin-tools').classList.toggle('open')">⚙️ Data & Backups</button>
         <div id="admin-tools">
-            <button class="btn secondary" style="font-size: 12px;" onclick="exportCSV()">📊 Export to CSV (Clean)</button>
-            <button class="btn secondary" style="font-size: 12px;" onclick="backupJSON()">💾 Download JSON Backup</button>
-            <button class="btn secondary" style="font-size: 12px;" onclick="document.getElementById('importFile').click()">📂 Restore Backup</button>
+            <button class="admin-btn" onclick="exportCSV()">📊 Export to CSV</button>
+            <button class="admin-btn" onclick="backupJSON()">💾 Download JSON Backup</button>
+            <button class="admin-btn" onclick="document.getElementById('importFile').click()">📂 Restore Backup</button>
             <input type="file" id="importFile" class="hidden" accept=".json" onchange="restoreJSON(event)">
         </div>
 
@@ -193,15 +173,13 @@
     <div id="about-page" class="hidden">
         <h3>User Guide</h3>
         <div style="line-height: 1.7; color: #bbb;">
-            <p style="color: var(--text); font-size: 0.95rem; margin-bottom: 25px; opacity: 0.9; line-height: 1.6;">A lightweight tracker for prayer sessions and digital journaling.</p>
-            
+            <p>A lightweight tracker for prayer sessions and digital journaling.</p>
             <h4 style="color:var(--accent); margin-bottom:5px;">🔒 Your Privacy</h4>
-            <p>None of your data from this app—your notes or your timings—ever leaves your phone or computer. There is no central database and no one (including the developer) can see what you write. It stays 100% on your device, just like a paper journal.</p>
-            
+            <p>None of your data ever leaves your phone or computer. There is no central database. It stays 100% on your device.</p>
             <h4 style="color:var(--accent); margin-bottom:5px;">📲 Data</h4>
             <p>As all data is only stored on your device, use JSON Backup regularly. If you get a new phone or switch browsers, you'll need this file to transfer your history.</p>
         </div>
-        <button class="btn secondary full-width" style="margin-top:20px;" onclick="showPage('setup')">Back to App</button>
+        <button class="btn primary full-width" style="margin-top:20px;" onclick="showPage('setup')">Back</button>
     </div>
 </div>
 
@@ -215,7 +193,7 @@
         setGoal: (val) => localStorage.setItem('dailyGoal', val)
     };
 
-    let timerInterval, autosaveInterval, elapsedSeconds = 0, isPaused = false, startTime = null, wakeLock = null, openDay = null;
+    let timerInterval, elapsedSeconds = 0, isPaused = false, startTime = null, wakeLock = null, openDay = null;
 
     const mainPointersEl = document.getElementById('main-pointers');
     mainPointersEl.innerHTML = db.getPointers();
@@ -226,18 +204,6 @@
             try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
         }
     }
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') await requestWakeLock();
-    });
-
-    window.onload = () => {
-        const saved = JSON.parse(localStorage.getItem('activeSession'));
-        if (saved && saved.startTime) {
-            const start = new Date(saved.startTime);
-            document.getElementById('recovery-timestamp').innerText = `Started: ${start.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
-            document.getElementById('recovery-overlay').classList.remove('hidden');
-        }
-    };
 
     function showPage(id) {
         ['setup', 'manual', 'history', 'about'].forEach(p => {
@@ -250,29 +216,25 @@
         if (id === 'manual') prepManual();
     }
 
-    function format(cmd) {
-        document.execCommand(cmd, false, null);
-        const active = document.activeElement;
-        if (active && active.getAttribute('contenteditable')) active.focus();
-    }
+    function format(cmd) { document.execCommand(cmd, false, null); }
 
-    function startSession(isResuming = false) {
-        if (!isPaused && !isResuming) { startTime = Date.now(); requestWakeLock(); } 
-        else if (isPaused) { startTime = Date.now() - (elapsedSeconds * 1000); requestWakeLock(); }
+    function startSession() {
+        if (!isPaused) { startTime = Date.now(); requestWakeLock(); } 
+        else { startTime = Date.now() - (elapsedSeconds * 1000); requestWakeLock(); }
         isPaused = false;
         document.getElementById('start-btn').classList.add('hidden');
         ['pause-btn', 'stop-btn'].forEach(i => document.getElementById(i).classList.remove('hidden'));
         document.getElementById('session-status').innerText = "Session Active";
-        timerInterval = setInterval(() => { elapsedSeconds = Math.floor((Date.now() - startTime) / 1000); updateDisplay(); }, 1000);
-        autosaveInterval = setInterval(() => {
-            localStorage.setItem('activeSession', JSON.stringify({ startTime, elapsed: elapsedSeconds, pointers: mainPointersEl.innerHTML }));
-        }, 10000);
+        timerInterval = setInterval(() => { 
+            elapsedSeconds = Math.floor((Date.now() - startTime) / 1000); 
+            updateDisplay(); 
+        }, 1000);
     }
 
     function togglePause() {
         if (!isPaused) {
-            clearInterval(timerInterval); clearInterval(autosaveInterval);
-            isPaused = true; document.getElementById('pause-btn').innerText = "Resume";
+            clearInterval(timerInterval); isPaused = true; 
+            document.getElementById('pause-btn').innerText = "Resume";
             if (wakeLock) { wakeLock.release().then(() => wakeLock = null); }
         } else {
             document.getElementById('pause-btn').innerText = "Pause"; startSession();
@@ -280,13 +242,12 @@
     }
 
     function stopSession() {
-        clearInterval(timerInterval); clearInterval(autosaveInterval);
+        clearInterval(timerInterval);
         if (startTime) {
             const h = db.getHistory();
             h.push({ id: Date.now(), start: new Date(startTime).toISOString(), duration: elapsedSeconds, pointers: mainPointersEl.innerHTML });
             db.saveHistory(h);
         }
-        localStorage.removeItem('activeSession');
         location.reload();
     }
 
@@ -295,19 +256,6 @@
         const m = Math.floor((elapsedSeconds%3600)/60).toString().padStart(2,'0');
         const s = (elapsedSeconds%60).toString().padStart(2,'0');
         document.getElementById('display-time').innerText = `${h}:${m}:${s}`;
-    }
-
-    function handleRecovery(choice) {
-        const saved = JSON.parse(localStorage.getItem('activeSession'));
-        document.getElementById('recovery-overlay').classList.add('hidden');
-        if (choice === 'resume') {
-            startTime = saved.startTime; elapsedSeconds = Math.floor((Date.now() - startTime)/1000);
-            mainPointersEl.innerHTML = saved.pointers; startSession(true);
-        } else if (choice === 'save') {
-            const h = db.getHistory();
-            h.push({ id: Date.now(), start: new Date(saved.startTime).toISOString(), duration: saved.elapsed, pointers: saved.pointers });
-            db.saveHistory(h); localStorage.removeItem('activeSession'); location.reload();
-        } else { localStorage.removeItem('activeSession'); location.reload(); }
     }
 
     function prepManual() {
@@ -326,13 +274,6 @@
         const h = db.getHistory();
         h.push({ id: Date.now(), start: s.toISOString(), duration: diff, pointers: document.getElementById('manual-pointers').innerHTML });
         db.saveHistory(h); showPage('history');
-    }
-
-    function formatTimeLabel(mins) {
-        if (mins < 60) return `${Math.round(mins)}m`;
-        const h = Math.floor(mins / 60);
-        const m = Math.round(mins % 60);
-        return `${h}h ${m}m`;
     }
 
     function loadHistory() {
@@ -356,7 +297,6 @@
         Object.values(grouped).forEach(day => {
             if (day.date >= startOfWeek) weeklyMins += day.total;
             const year = day.date.getFullYear(), month = day.date.toLocaleString('default', { month: 'long' });
-            
             if (year !== lastYear) { 
                 const y = document.createElement('div'); y.className="year-head"; y.innerText=year; list.appendChild(y); lastYear=year; 
             }
@@ -365,7 +305,7 @@
             }
             
             const dayId = day.date.getTime();
-            const colorClass = (goal > 0 && day.total >= goal) ? 'var(--success)' : 'var(--accent)';
+            const colorClass = (goal > 0 && day.total >= goal) ? 'var(--success)' : '#888';
             
             const dayEl = document.createElement('div'); dayEl.className = "history-day-group";
             dayEl.innerHTML = `
@@ -380,7 +320,7 @@
                                 <span>${new Date(i.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
                                 <span onclick="editDur(${i.id})" style="text-decoration:underline dashed">${Math.round(i.duration/60)}m</span>
                             </div>
-                            <span class="editable-text" contenteditable="true" onblur="updateNotes(${i.id}, this)">${i.pointers || "Tap to add notes..."}</span>
+                            <span class="editable-text" contenteditable="true" onblur="updateNotes(${i.id}, this)">${i.pointers || ""}</span>
                             <div class="action-bar">
                                 <button class="action-btn" onclick="copyItem(${i.id})">📋 Copy</button>
                                 <button class="action-btn" style="background:#422;" onclick="deleteItem(${i.id})">🗑️ Delete</button>
@@ -391,7 +331,9 @@
             list.appendChild(dayEl);
         });
 
-        document.getElementById('dash-week-total').innerText = formatTimeLabel(weeklyMins);
+        const hw = Math.floor(weeklyMins / 60);
+        const mw = Math.round(weeklyMins % 60);
+        document.getElementById('dash-week-total').innerText = hw > 0 ? `${hw}h ${mw}m` : `${mw}m`;
         document.getElementById('dash-goal-val').innerText = goal + "m";
         document.getElementById('dash-streak').innerText = getStreak(history);
     }
@@ -410,10 +352,15 @@
         return streak;
     }
 
-    function copyItem(id) {
+    async function copyItem(id) {
         const i = db.getHistory().find(x => x.id == id);
-        const t = document.createElement("div"); t.innerHTML = i.pointers || "";
-        navigator.clipboard.writeText(t.innerText || t.textContent).then(() => alert("Copied Plain Text!"));
+        const html = i.pointers || "";
+        const text = i.pointers.replace(/<[^>]+>/g, '');
+        const blobHtml = new Blob([html], { type: "text/html" });
+        const blobText = new Blob([text], { type: "text/plain" });
+        const data = [new ClipboardItem({ "text/html": blobHtml, "text/plain": blobText })];
+        await navigator.clipboard.write(data);
+        alert("Copied with formatting!");
     }
 
     function exportCSV() {
@@ -443,4 +390,4 @@
     }
 </script>
 </body>
-</html>
+</html> 
