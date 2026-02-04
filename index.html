@@ -26,7 +26,6 @@
         .nav button { flex: 1; padding: 12px 5px; font-size: 14px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: #2a2a2a; color: white; }
         .nav .active { background: var(--accent); color: #000; }
 
-        /* Rich Text Toolbars */
         .toolbar { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
         .toolbar button { background: #2a2a2a; color: var(--text); border: 1px solid #444; padding: 6px 10px; border-radius: 8px; font-size: 13px; cursor: pointer; min-width: 35px; }
         .toolbar button:active { background: var(--accent); color: #000; }
@@ -52,7 +51,6 @@
         .success { background: var(--success); color: #000; }
         .full-width { width: 100%; margin-top: 10px; }
 
-        /* Dashboard & Grouping */
         .dash-card { background: var(--card); border-radius: 15px; padding: 15px; margin-bottom: 10px; border: 1px solid #333; }
         .dash-main { display: flex; justify-content: space-around; align-items: center; }
         .dash-item { text-align: center; flex: 1; }
@@ -84,6 +82,7 @@
         .recovery-card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid var(--accent); text-align: center; max-width: 400px; width: 100%; }
         
         .hidden { display: none !important; }
+        .verse-footer { margin-top: 30px; text-align: center; font-size: 0.8rem; color: #555; font-style: italic; }
     </style>
 </head>
 <body>
@@ -132,6 +131,7 @@
                 <button id="stop-btn" class="btn stop hidden" onclick="stopSession()">End</button>
             </div>
         </div>
+        <div class="verse-footer">"Pray without ceasing." — 1 Thess 5:17</div>
     </div>
 
     <div id="manual-page" class="hidden">
@@ -311,14 +311,16 @@
     }
 
     function prepManual() {
-        const now = new Date(); const fmt = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+        const now = new Date(); 
+        const fmt = d => new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,16);
         document.getElementById('manual-start').value = fmt(new Date(now - 1800000));
         document.getElementById('manual-end').value = fmt(now);
         document.getElementById('manual-pointers').innerHTML = mainPointersEl.innerHTML;
     }
 
     function saveManualLog() {
-        const s = new Date(document.getElementById('manual-start').value), e = new Date(document.getElementById('manual-end').value);
+        const s = new Date(document.getElementById('manual-start').value);
+        const e = new Date(document.getElementById('manual-end').value);
         const diff = Math.floor((e - s) / 1000);
         if (diff <= 0) return alert("End time must be after Start time.");
         const h = db.getHistory();
@@ -354,7 +356,7 @@
         Object.values(grouped).forEach(day => {
             if (day.date >= startOfWeek) weeklyMins += day.total;
             const year = day.date.getFullYear(), month = day.date.toLocaleString('default', { month: 'long' });
-
+            
             if (year !== lastYear) { 
                 const y = document.createElement('div'); y.className="year-head"; y.innerText=year; list.appendChild(y); lastYear=year; 
             }
