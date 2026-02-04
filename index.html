@@ -35,7 +35,7 @@
             box-sizing: border-box; font-size: 16px; margin-bottom: 12px;
         }
         #main-pointers, #manual-pointers { height: 264px; overflow-y: auto; text-align: left; line-height: 1.5; white-space: pre-wrap; outline: none; }
-        #manual-pointers { height: 180px; }
+        #manual-pointers { height: 240px; }
 
         .timer-box {
             background: linear-gradient(145deg, #1e1e1e, #222);
@@ -111,6 +111,7 @@
     </div>
 
     <div id="setup-page">
+        <h3>Prayer & Reflections</h3>
         <div class="toolbar">
             <button onclick="format('bold')"><b>B</b></button>
             <button onclick="format('italic')"><i>I</i></button>
@@ -426,32 +427,24 @@
     }
 
     function exportCSV() {
-        const h = db.getHistory(); 
-        // Use a semi-colon or ensure date has no commas to prevent column shifting
-        let csv = "Date,Duration(Min),Notes\n";
-        
-        h.forEach(i => {
-            const dateObj = new Date(i.start);
-            // Formats to YYYY-MM-DD HH:mm (No commas)
-            const isoDate = dateObj.getFullYear() + "-" + 
-                           String(dateObj.getMonth() + 1).padStart(2, '0') + "-" + 
-                           String(dateObj.getDate()).padStart(2, '0') + " " + 
-                           String(dateObj.getHours()).padStart(2, '0') + ":" + 
-                           String(dateObj.getMinutes()).padStart(2, '0');
-
-            const t = document.createElement("div"); 
-            t.innerHTML = i.pointers || "";
-            // Strip HTML and escape quotes for the Notes column
-            const p = (t.innerText || t.textContent).replace(/"/g, '""');
-            
-            csv += `${isoDate},${Math.round(i.duration/60)},"${p}"\n`;
-        });
-        
-        const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(blob);
-        a.download = `prayer_log.csv`; 
-        a.click();
+    const h = db.getHistory(); 
+    let csv = "Date,Duration(Min),Notes\n"; // Ensure this is simple plain text
+    h.forEach(i => {
+        const t = document.createElement("div"); 
+        t.innerHTML = i.pointers || "";
+        const p = (t.innerText || t.textContent).replace(/"/g, '""');
+        // Using a cleaner date format without commas
+        const d = new Date(i.start).toISOString().replace('T', ' ').substring(0, 16);
+        csv += `${d},${Math.round(i.duration/60)},"${p}"\n`;
+    });
+    
+    // Create an explicit UTF-8 BOM
+    const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+    const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); 
+    a.href = URL.createObjectURL(blob);
+    a.download = `prayer_log.csv`; 
+    a.click();
     }
 
     function backupJSON() {
