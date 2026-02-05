@@ -54,7 +54,16 @@
         .dash-item { text-align: center; flex: 1; }
         .dash-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
         .dash-lbl { font-size: 0.65rem; color: #888; text-transform: uppercase; margin-top: 4px; display: block; }
-
+        .dash-footer {
+    display: flex;
+    justify-content: space-around;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid #333;
+    font-size: 0.75rem;
+    color: #888;
+        }
+        
         .year-head { font-size: 1.3rem; font-weight: bold; color: var(--accent); margin: 25px 0 5px 0; }
         .month-head { font-size: 0.85rem; color: #888; text-transform: uppercase; margin: 10px 0 5px 0; border-bottom: 1px solid #222; padding-bottom: 4px; }
         
@@ -196,19 +205,12 @@
         </div>
     </div>
 
-    <div style="border-top: 1px solid #333; margin: 12px 15px; opacity: 0.3;"></div>
-
-    <div class="dash-main" style="padding-bottom: 5px;">
-        <div class="dash-item">
-            <span id="dash-total-hours" style="font-size: 0.85rem; color: #888;">0h</span>
-            <span style="font-size: 0.55rem; color: #555; text-transform: uppercase; display: block; letter-spacing: 0.5px;">Lifetime Hours</span>
-        </div>
-        <div class="dash-item">
-            <span id="dash-total-sessions" style="font-size: 0.85rem; color: #888;">0</span>
-            <span style="font-size: 0.55rem; color: #555; text-transform: uppercase; display: block; letter-spacing: 0.5px;">Total Sessions</span>
-        </div>
+    <div class="dash-footer">
+        <span id="stat-total-hours">Total: 0h</span>
+        <span id="stat-count">Sessions: 0</span>
     </div>
         </div>
+        
         
         <button class="admin-toggle" onclick="document.getElementById('admin-tools').classList.toggle('open')">⚙️ Data & Backups</button>
         <div id="admin-tools">
@@ -458,12 +460,12 @@
         document.getElementById('dash-goal-val').innerText = goal + "m";
         document.getElementById('dash-streak').innerText = getStreak(history);
 
-        // --- NEW: Calculate & Update Lifetime Stats (Grey/Subtle) ---
         const totalSessions = history.length;
         const totalHours = (history.reduce((acc, i) => acc + (i.duration / 3600), 0)).toFixed(1);
 
-        document.getElementById('dash-total-sessions').innerText = totalSessions;
-        document.getElementById('dash-total-hours').innerText = totalHours + "h";
+document.getElementById('stat-count').innerText = "Sessions: " + totalSessions;
+document.getElementById('stat-total-hours').innerText = "Total: " + totalHours + "h";
+            
     }
     
 
