@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>My Prayer Tracker</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#121212">
+    <link rel="manifest" href='data:application/manifest+json,{"name":"My Prayer Tracker","short_name":"Prayer","start_url":".","display":"standalone","background_color":"#121212","theme_color":"#bb86fc"}'>
+    
     <style>
         :root {
             --bg: #121212; --card: #1e1e1e; --text: #e0e0e0;
@@ -177,7 +183,7 @@
                 <button onclick="format('insertUnorderedList')">• List</button>
             </div>
             <div id="manual-pointers" contenteditable="true" placeholder="Add notes for this entry..."></div>
-            <button class="btn success full-width" onclick="saveManualLog()">Add to History</button>
+            <button class="btn primary full-width" onclick="saveManualLog()">Add to History</button>
         </div>
     </div>
 
@@ -568,5 +574,15 @@ function editDur(id) {
         }; r.readAsText(f);
     }
 </script>
+
+<script>
+if ('serviceWorker' in navigator) {
+    // We register the separate sw.js file
+    navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log("Offline Engine: Ready"))
+        .catch(err => console.error("Offline Engine: Failed", err));
+}
+</script>
+    
 </body>
 </html>
