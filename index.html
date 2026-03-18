@@ -578,7 +578,7 @@ function editDur(id) {
 <script>
 if ('serviceWorker' in navigator) {
     // We register the separate sw.js file
-    navigator.serviceWorker.register('sw.js')
+    navigator.serviceWorker.register('./sw.js')
         .then(reg => console.log("Offline Engine: Ready"))
         .catch(err => console.error("Offline Engine: Failed", err));
 }
