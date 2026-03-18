@@ -576,27 +576,11 @@ function editDur(id) {
 </script>
 
 <script>
-// --- SERVICE WORKER FOR INSTANT LOADING ---
 if ('serviceWorker' in navigator) {
-    const version = 'v4.0.2'; // Change this if you ever edit the code
-    const swCode = `
-        const cacheName = 'prayer-tracker-' + '${version}';
-        self.addEventListener('install', e => {
-            self.skipWaiting(); 
-            e.waitUntil(caches.open(cacheName).then(cache => cache.addAll(['./', 'index.html'])));
-        });
-        self.addEventListener('activate', e => {
-            self.clients.claim(); 
-            e.waitUntil(caches.keys().then(keys => Promise.all(
-                keys.map(k => k !== cacheName ? caches.delete(k) : null)
-            )));
-        });
-        self.addEventListener('fetch', e => {
-            e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
-        });
-    `;
-    const blob = new Blob([swCode], {type: 'text/javascript'});
-    navigator.serviceWorker.register(URL.createObjectURL(blob));
+    // We register the separate sw.js file
+    navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log("Offline Engine: Ready"))
+        .catch(err => console.error("Offline Engine: Failed", err));
 }
 </script>
     
