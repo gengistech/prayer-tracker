@@ -1,8 +1,9 @@
 const cacheName = 'prayer-tracker-v4.0.3';
 // GitHub Pages paths are relative to the repository root
 const assets = [
-  './',
-  'index.html'
+  './',          // The current directory
+  'index.html',  // The specific file
+  'sw.js'        // Cache the worker itself
 ];
 
 self.addEventListener('install', e => {
