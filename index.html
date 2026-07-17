@@ -418,7 +418,7 @@
             const dur = Math.floor((Date.now() - saved.startTime) / 1000);
             const h = db.getHistory();
             h.push({ id: Date.now(), start: new Date(saved.startTime).toISOString(), duration: dur, pointers: saved.pointers });
-            db.saveHistory(h); localStorage.removeItem('activeSession'); location.reload();
+            db.saveHistory(h); bumpBackupCounter(); localStorage.removeItem('activeSession'); location.reload();
         } else { localStorage.removeItem('activeSession'); location.reload(); }
     }
 
@@ -721,16 +721,6 @@
 <script>
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
-    navigator.serviceWorker.addEventListener('message', e => {
-        if (e.data?.type === 'SW_UPDATED') {
-            const t = document.getElementById('toast');
-            t.textContent = 'Update available — tap to reload';
-            t.style.cursor = 'pointer';
-            t.onclick = () => location.reload();
-            t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), 8000);
-        }
-    });
 }
 </script>
     
