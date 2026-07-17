@@ -74,7 +74,7 @@
         .dash-item { text-align: center; flex: 1; }
         .dash-val { display: block; font-size: 1.2rem; font-weight: bold; color: var(--accent); }
         .dash-lbl { font-size: 0.65rem; color: #888; text-transform: uppercase; margin-top: 4px; display: block; }
-        .dash-footer { display: flex; justify-content: space-between; padding-top: 10px; margin-top: 10px; border-top: 1px solid #333; font-size: 0.75rem; color: #888;
+        .dash-footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 0; padding-top: 10px; margin-top: 10px; border-top: 1px solid #333; font-size: 0.75rem; color: #888;
         }
 
         /* Unified Editable Style */
@@ -223,8 +223,9 @@
                 </div>
             </div>
             <div class="dash-footer">
-                <span id="stat-total-hours">Total: 0h</span>
-                <span id="stat-count">Sessions: 0</span>
+                <span id="stat-last-week">Last Week: —</span>
+                <span id="stat-total">Total: 0h, 0 Sessions</span>
+                <span id="stat-best-streak">Best Streak: 0</span>
             </div>
         </div>
 
@@ -265,7 +266,7 @@
         getPointers: () => localStorage.getItem('mainPointers') || "",
         savePointers: (txt) => localStorage.setItem('mainPointers', txt),
         getGoal: () => parseInt(localStorage.getItem('dailyGoal') || "0"),
-        setGoal: (val) => { localStorage.setItem('dailyGoal', val); historyDirty = true; }
+        setGoal: (val) => { localStorage.setItem('dailyGoal', val); historyDirty = true; },
     };
 
     let timerInterval, autosaveInterval, elapsedSeconds = 0, isPaused = false, startTime = null, wakeLock = null, openDay = null, shouldKeepAwake = false, historyDirty = false;
@@ -423,8 +424,13 @@
             return acc;
         }, {});
 
+        const startOfLastWeek = new Date(startOfWeek);
+        startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+        let lastWeekMins = 0;
+
         Object.values(grouped).forEach(day => {
             if (day.date >= startOfWeek) weeklyMins += day.total;
+            if (day.date >= startOfLastWeek && day.date < startOfWeek) lastWeekMins += day.total;
             const year = day.date.getFullYear(), month = day.date.toLocaleString('default', { month: 'long' });
             if (year !== lastYear) { 
                 const y = document.createElement('div'); y.className="year-head"; y.innerText=year; list.appendChild(y); lastYear=year; 
@@ -475,8 +481,11 @@
         // Format as "Xh Ym" or just "Ym"
         const timeStr = th > 0 ? `${th}h ${tm}m` : `${tm}m`;
 
-        document.getElementById('stat-count').innerText = "Sessions: " + totalSessions;
-        document.getElementById('stat-total-hours').innerText = "Total: " + timeStr;
+        document.getElementById('stat-total').innerText = `Total: ${timeStr}, ${totalSessions} Sessions`;
+
+        const lwh = Math.floor(lastWeekMins / 60), lwm = Math.round(lastWeekMins % 60);
+        document.getElementById('stat-last-week').innerText = "Last Week: " + (lwh > 0 ? `${lwh}h ${lwm}m` : `${lwm}m`);
+        document.getElementById('stat-best-streak').innerText = "Best Streak: " + getBestStreak(history);
     }
 
     // ── Toast ────────────────────────────────────────────────
@@ -616,6 +625,19 @@
         let streak = 0, check = new Date(); if (!dates.includes(check.toDateString())) check.setDate(check.getDate() - 1);
         while (dates.includes(check.toDateString())) { streak++; check.setDate(check.getDate() - 1); }
         return streak;
+    }
+
+    function getBestStreak(h) {
+        if (!h.length) return 0;
+        const dates = [...new Set(h.map(i => new Date(i.start).toDateString()))]
+            .map(d => new Date(d)).sort((a, b) => a - b);
+        let best = 1, run = 1;
+        for (let i = 1; i < dates.length; i++) {
+            const diff = (dates[i] - dates[i-1]) / 86400000;
+            if (diff === 1) { run++; if (run > best) best = run; }
+            else run = 1;
+        }
+        return best;
     }
 
     function exportCSV() {
